@@ -1,0 +1,30 @@
+/* 瓷光: warm paper-white ground, white cards with 1px hairlines, small radii, quiet layered shadows.
+   Classes for the 原理动画 template; colours from the palette. A bright ground, 16px cards with a
+   hairline, light labels and strokes: thick lines and big radii read coarse here. */
+:root{--hair:rgba(26,26,23,.09);--well:#F4F3EF;--r:16px;--r-sm:10px;
+ --lift:0 1px 0 rgba(255,255,255,.9) inset,0 1px 2px rgba(26,26,23,.04),0 10px 26px -14px rgba(26,26,23,.12),0 30px 60px -42px rgba(26,26,23,.18)}
+.slide{background:radial-gradient(1500px 1000px at 50% 32%,#FFFFFF 0%,var(--bg) 60%,#F4F3EF 100%)}
+#sub{font-weight:500;letter-spacing:1.5px;
+ text-shadow:0 0 2px var(--bg),0 0 8px var(--bg),0 0 16px var(--bg),0 0 24px var(--bg)}
+.wm{font-family:var(--ui);font-weight:400;font-size:calc(var(--wm-size) * .76);color:var(--muted);letter-spacing:1.5px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--lift)}
+.glass{background:rgba(255,255,255,.74);border:1px solid rgba(26,26,23,.07);border-radius:var(--r);
+ box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 18px 44px -30px rgba(26,26,23,.22);backdrop-filter:blur(18px)}
+.tray{background:var(--well);border-radius:24px}
+.lbl{font-family:var(--ui);font-weight:400;font-size:calc(24px * var(--fs));letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
+.lbl.ink{color:var(--ink);font-weight:500}
+.lbl.blue{color:var(--primary)}
+.lbl.coral{color:var(--secondary)}
+.big{font-family:var(--ui);font-weight:500;letter-spacing:.5px;color:var(--ink);white-space:nowrap;line-height:1.25}
+.big.num{letter-spacing:-.5px}
+.thin{font-family:var(--ui);font-weight:300;color:var(--ink);white-space:nowrap;line-height:1.35}
+.mono{font-family:'SF Mono',Menlo,Consolas,monospace;white-space:pre;color:var(--ink)}
+.num{font-family:var(--ui);font-variant-numeric:tabular-nums}
+.chip2{display:inline-flex;align-items:center;gap:12px;padding:9px 20px;border-radius:999px;background:var(--card);border:1px solid var(--hair);
+ font-family:var(--ui);font-weight:400;font-size:calc(28px * var(--fs));white-space:nowrap;
+ box-shadow:0 1px 2px rgba(26,26,23,.05),0 8px 20px -14px rgba(26,26,23,.22)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--primary)}
+svg .hair{stroke:var(--line);stroke-width:1.25;fill:none}
+svg .t-lbl{font-family:var(--ui);font-size:22px;font-weight:400;fill:var(--muted);letter-spacing:1.5px}
+svg .t-ink{font-family:var(--ui);font-size:30px;font-weight:400;fill:var(--ink)}
+svg .t-num{font-family:var(--ui);font-variant-numeric:tabular-nums;font-weight:500;fill:var(--ink)}

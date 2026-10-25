@@ -1,0 +1,29 @@
+{
+  "name": "手写（默认）",
+  "desc": "白底、霞鹜文楷手写感、橙色重点、黄底封面，Keynote 式逐字打出：知识讲解",
+  "motion": "keynote",
+  "size": [1920, 1080],
+  "font_scale": 1.0,
+  "cover_type": {"size": 116, "weight": 500, "stroke": 1.2, "series_size": 88, "series_weight": 500},
+  "font": {"family": "WenKai GB", "file": "fonts/WenKaiGB-Medium.ttf"},
+  "ui_font": "PingFang SC",
+  "colors": {
+    "primary": "#F8A000",
+    "secondary": "#2F9BEF",
+    "ink": "#222222",
+    "muted": "#9AA6B2",
+    "danger": "#E81808",
+    "background": "#FFFFFF",
+    "cover": "#FFDA31",
+    "table_header": "#48B0F8",
+    "table_highlight": "#FCEB86"
+  },
+  "subtitle": {"size": 48, "color": "auto", "bottom": "auto", "max_chars": "auto"},
+  "brand": {
+    "mascot": "",
+    "series": "",
+    "watermark": "",
+    "end_card": "下期见",
+    "outro": ["这期就到这里，我们下期见。"]
+  }
+}

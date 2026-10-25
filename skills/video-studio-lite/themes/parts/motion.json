@@ -1,0 +1,48 @@
+{
+  "about": "Named motion presets for use_theme(motion=...). enter: default entrance per element kind (an explicit a='...' on an element wins). ease: curve for fade/draw/grow/wipe/mask/slide. speed: multiplies every entrance duration. trans/trans_dur: default slide transition. cam_dur: how long a camera move (beat cam=) takes.",
+  "keynote": {
+    "name": "Keynote（默认）",
+    "desc": "文字逐字打出，框淡入，胶囊弹出，换页淡入淡出：对着 Keynote 讲课的节奏",
+    "enter": {"text": "type", "hand": "type", "title": "fade", "box": "fade", "chip": "pop", "img": "fade",
+              "stat": "count", "card": "fade", "step": "fade", "quote": "fade"},
+    "ease": "cubicOut", "speed": 1.0, "type_cps": 15, "trans": "fade", "trans_dur": 0.35, "cam_dur": 1.0
+  },
+  "snappy": {
+    "name": "利落",
+    "desc": "文字弹簧上浮，标题从遮罩里升起，框弹出，换页横推：节奏快",
+    "enter": {"text": "rise", "title": "mask", "box": "pop", "img": "rise", "card": "rise", "step": "rise", "quote": "rise"},
+    "ease": "expoOut", "speed": 0.9, "trans": "push", "trans_dur": 0.5, "cam_dur": 0.8
+  },
+  "calm": {
+    "name": "舒缓",
+    "desc": "文字由虚变实，标题遮罩升起，一切都慢一点，换页慢慢淡入",
+    "enter": {"text": "blur", "title": "mask", "box": "fade", "chip": "fade", "img": "blur", "card": "fade", "step": "blur", "quote": "blur"},
+    "ease": "sineOut", "speed": 1.3, "trans": "fade", "trans_dur": 0.7, "cam_dur": 1.4
+  },
+  "bouncy": {
+    "name": "活泼",
+    "desc": "标题像盖章一样砸下来，框和卡片弹出，换页缩放",
+    "enter": {"text": "rise", "title": "zoom", "box": "zoom", "img": "pop", "card": "pop", "step": "pop", "quote": "zoom"},
+    "ease": "backOut", "speed": 1.0, "trans": "zoom", "trans_dur": 0.45, "cam_dur": 0.9
+  },
+  "editorial": {
+    "name": "杂志",
+    "desc": "文字和标题从遮罩里升起，框从左擦出，换页像翻页一样擦过去",
+    "enter": {"text": "mask", "hand": "type", "title": "mask", "box": "wipe", "chip": "fade", "img": "wipe", "card": "wipe", "step": "mask", "quote": "mask"},
+    "ease": "quartOut", "speed": 1.1, "trans": "wipe", "trans_dur": 0.6, "cam_dur": 1.1
+  },
+  "fluid": {
+    "name": "流畅",
+    "desc": "所有东西慢慢落定（淡入、轻微上浮和对焦），不弹跳；换页长溶解，镜头走得慢",
+    "enter": {"text": "soft", "hand": "type", "title": "soft", "box": "soft", "chip": "soft", "img": "soft",
+              "stat": "count", "card": "soft", "step": "soft", "quote": "soft"},
+    "ease": "cubicInOut", "speed": 1.0, "trans": "fade", "trans_dur": 0.8, "cam_dur": 1.8
+  },
+  "cinema": {
+    "name": "电影",
+    "desc": "比流畅更慢：字一行一行由虚变实，长溶解换场，镜头几乎察觉不到地推近",
+    "enter": {"text": "soft", "hand": "soft", "title": "soft", "box": "soft", "chip": "soft", "img": "soft",
+              "stat": "soft", "card": "soft", "step": "soft", "quote": "soft"},
+    "ease": "sineInOut", "speed": 1.7, "trans": "fade", "trans_dur": 1.4, "cam_dur": 3.0
+  }
+}

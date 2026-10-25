@@ -1,0 +1,10 @@
+{
+  "name": "暖光",
+  "desc": "暖色光影、细宋大字、胶片颗粒和遮幅，字一行行浮现、镜头极慢推近：情感、品牌、回忆（情感短片片种）",
+  "palette": "amber",
+  "typeset": "serif",
+  "motion": "cinema",
+  "css": "nuanguang.css",
+  "fx": {"grain": 0.07, "vignette": 0.22, "letterbox": 2.39, "drift": 0.03},
+  "subtitle": {"size": 34, "color": "#EFE6DA"}
+}

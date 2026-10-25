@@ -1,0 +1,98 @@
+{
+  "about": "Named colour sets for use_theme(palette=...). A palette replaces all colours at once; the finer tokens (card, line, soft, rule, grid, axis, label, on_primary, cover_ink, sub_outline, marker) are derived from ink/background unless a palette sets them. Colour arguments passed to use_theme() still win.",
+  "sunny": {
+    "name": "暖阳黄（默认）",
+    "desc": "白底、橙色重点、黄底封面：默认手写风格的颜色",
+    "colors": {
+      "primary": "#F8A000", "secondary": "#2F9BEF", "ink": "#222222", "muted": "#9AA6B2", "danger": "#E81808",
+      "background": "#FFFFFF", "cover": "#FFDA31", "table_header": "#48B0F8", "table_highlight": "#FCEB86",
+      "card": "#FFFFFF", "line": "#333333", "soft": "#8C8C8C", "rule": "#E3EEF8", "grid": "#E6E6E6",
+      "axis": "#888888", "label": "#333333", "on_primary": "#FFFFFF", "cover_ink": "#222222", "sub_outline": "#FFFFFF"
+    }
+  },
+  "chalk": {
+    "name": "黑板",
+    "desc": "墨绿黑板、粉笔白字、黄色粉笔重点，像在教室里讲课",
+    "colors": {
+      "primary": "#F6D365", "secondary": "#8FD3F4", "ink": "#F2EFE6", "muted": "#7F978C", "danger": "#F4877C",
+      "background": "#24382F", "cover": "#1C2D26", "table_header": "#3B5A4B", "table_highlight": "#3F4C2E",
+      "card": "#2C4338", "line": "#D9D5C9", "on_primary": "#24382F"
+    }
+  },
+  "paper": {
+    "name": "纸本",
+    "desc": "米色纸、墨黑字、朱红重点，书和杂志的感觉",
+    "colors": {
+      "primary": "#C8402B", "secondary": "#2D5F8B", "ink": "#1F1C18", "muted": "#A49C8E", "danger": "#B3261E",
+      "background": "#F6F2EA", "cover": "#ECE4D4", "table_header": "#2E2A25", "table_highlight": "#F2E1C7",
+      "card": "#FFFDF8"
+    }
+  },
+  "night": {
+    "name": "夜读",
+    "desc": "深蓝黑底、奶白字、琥珀重点，适合科技和数据",
+    "colors": {
+      "primary": "#F5B941", "secondary": "#4FC1B0", "ink": "#ECE7DF", "muted": "#5E667A", "danger": "#FF6B5B",
+      "background": "#12141C", "cover": "#1A1E2B", "table_header": "#2A3045", "table_highlight": "#3A3220",
+      "card": "#1C2030"
+    }
+  },
+  "ocean": {
+    "name": "海报蓝",
+    "desc": "饱和蓝底、白字、明黄重点，海报感强，适合短视频",
+    "colors": {
+      "primary": "#FFD84A", "secondary": "#FF8A52", "ink": "#FFFFFF", "muted": "#9AA6F2", "danger": "#FF6B6B",
+      "background": "#2E44E0", "cover": "#1F31B8", "table_header": "#1F31B8", "table_highlight": "#4A5FEA",
+      "card": "#3A52EC"
+    }
+  },
+  "mint": {
+    "name": "薄荷",
+    "desc": "浅薄荷底、深绿字、翠绿重点，清爽，适合生活和健康",
+    "colors": {
+      "primary": "#0E9F78", "secondary": "#3B82F6", "ink": "#15302A", "muted": "#9DB3AA", "danger": "#E5484D",
+      "background": "#F2F8F5", "cover": "#D3EFE2", "table_header": "#0E9F78", "table_highlight": "#D2F1E3",
+      "card": "#FFFFFF"
+    }
+  },
+  "peach": {
+    "name": "蜜桃",
+    "desc": "暖白底、可可色字、珊瑚橙重点，柔和亲切",
+    "colors": {
+      "primary": "#EE6440", "secondary": "#7C5CFA", "ink": "#3A2622", "muted": "#C3A79E", "danger": "#D93A3A",
+      "background": "#FFF8F3", "cover": "#FFDCC9", "table_header": "#EE6440", "table_highlight": "#FFE4D6",
+      "card": "#FFFFFF"
+    }
+  },
+  "mono": {
+    "name": "黑白红",
+    "desc": "白底黑字，只有一个红色重点；黑色封面",
+    "colors": {
+      "primary": "#F0442A", "secondary": "#1C1C1C", "ink": "#141414", "muted": "#B8B8B8", "danger": "#F0442A",
+      "background": "#FAFAFA", "cover": "#141414", "table_header": "#141414", "table_highlight": "#F1F1F1",
+      "card": "#FFFFFF"
+    }
+  },
+  "porcelain": {
+    "name": "瓷光",
+    "desc": "暖白底、墨黑字、钴蓝信号色和一点珊瑚：干净精致的产品原理感",
+    "colors": {
+      "primary": "#2F5BFF", "secondary": "#FF6A3D", "ink": "#1A1A17", "muted": "#8D8C85", "danger": "#E5484D",
+      "background": "#FAFAF7", "cover": "#FAFAF7", "table_header": "#1A1A17", "table_highlight": "#E8EEFF",
+      "card": "#FFFFFF", "line": "#D6D4CD", "soft": "#5F5E58", "rule": "#ECEAE5", "grid": "#E6E4DE",
+      "axis": "#8D8C85", "label": "#3D3C37", "on_primary": "#FFFFFF", "cover_ink": "#1A1A17", "sub_outline": "#FAFAF7",
+      "marker": "#DCE5FF"
+    }
+  },
+  "amber": {
+    "name": "暖光",
+    "desc": "暖象牙底、深可可字、铜色光和一抹黄昏蓝：电影感、有光源的情绪片",
+    "colors": {
+      "primary": "#C9773D", "secondary": "#6F86A6", "ink": "#2B2320", "muted": "#A3958A", "danger": "#B4483A",
+      "background": "#EFE6DA", "cover": "#EFE6DA", "table_header": "#2B2320", "table_highlight": "#F5E3CC",
+      "card": "#FBF6EF", "line": "#B9A999", "soft": "#7A6C62", "rule": "#E3D6C6", "grid": "#E6DBCD",
+      "axis": "#A3958A", "label": "#4A3F39", "on_primary": "#FFFFFF", "cover_ink": "#2B2320", "sub_outline": "#2B2320",
+      "marker": "#F2D9BC"
+    }
+  }
+}

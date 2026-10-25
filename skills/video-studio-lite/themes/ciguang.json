@@ -1,0 +1,10 @@
+{
+  "name": "瓷光",
+  "desc": "暖白底、细描边小圆角卡片、钴蓝信号、细黑字，一切慢慢落定、镜头连续移动：科技原理、产品拆解（原理动画片种）",
+  "palette": "porcelain",
+  "typeset": "lab",
+  "motion": "fluid",
+  "css": "ciguang.css",
+  "fx": {"drift": 0.015},
+  "subtitle": {"size": 40, "color": "#1A1A17"}
+}

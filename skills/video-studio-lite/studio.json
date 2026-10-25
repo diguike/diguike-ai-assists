@@ -1,0 +1,5 @@
+{
+  "home": "~/VideoStudio",
+  "base": "shouxie",
+  "defaults": {"voice": "zh-CN-YunxiNeural"}
+}

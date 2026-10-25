@@ -1,0 +1,44 @@
+{
+  "about": "Named type sets for use_theme(typeset=...). Roles: display (titles, cover, big numbers), text (body, boxes, chips, chart labels). The theme's main font (handwriting by default) stays loaded for hand() notes; ui_font sets digits, axes and subtitles. Faces with a file are loaded from assets/ and checked before rendering; families without one are system fonts, named as on macOS; Windows and Linux get stand-ins (微软雅黑、宋体).",
+  "hand": {
+    "name": "手写（默认）",
+    "desc": "全片霞鹜文楷，数字和刻度用苹方（Windows 上是微软雅黑）"
+  },
+  "heavy": {
+    "name": "粗黑",
+    "desc": "系统最粗的黑体标题 + 中粗正文，手写只留给批注",
+    "roles": {"display": {"family": "PingFang SC", "weight": 900}, "text": {"family": "PingFang SC", "weight": 600}}
+  },
+  "song": {
+    "name": "宋体",
+    "desc": "宋体粗标题 + 苹方正文，书卷气",
+    "roles": {"display": {"family": "Songti SC", "weight": 900}, "text": {"family": "PingFang SC", "weight": 400}}
+  },
+  "kai": {
+    "name": "文楷",
+    "desc": "霞鹜文楷（常用字子集）标题和正文，温和好读",
+    "fonts": [{"family": "WenKai GB", "file": "fonts/WenKaiGB-Medium.ttf"}],
+    "roles": {"display": {"family": "WenKai GB", "weight": 500}, "text": {"family": "WenKai GB", "weight": 500}}
+  },
+  "smiley": {
+    "name": "得意黑",
+    "desc": "得意黑斜体标题 + 苹方中粗正文，海报和短视频感",
+    "fonts": [{"family": "Smiley Sans", "file": "fonts/SmileySans-Oblique.ttf.woff2"}],
+    "roles": {"display": {"family": "Smiley Sans", "weight": 400}, "text": {"family": "PingFang SC", "weight": 600}}
+  },
+  "clean": {
+    "name": "苹方",
+    "desc": "标题正文都用苹方，干净的界面感",
+    "roles": {"display": {"family": "PingFang SC", "weight": 700}, "text": {"family": "PingFang SC", "weight": 500}}
+  },
+  "lab": {
+    "name": "细黑",
+    "desc": "苹方中粗标题 + 苹方常规正文，字重轻、留白多：产品发布会的克制",
+    "roles": {"display": {"family": "PingFang SC", "weight": 600}, "text": {"family": "PingFang SC", "weight": 400}}
+  },
+  "serif": {
+    "name": "细宋",
+    "desc": "宋体细体标题 + 苹方细体正文，字距放开：电影字幕和书封的安静",
+    "roles": {"display": {"family": "Songti SC", "weight": 300}, "text": {"family": "PingFang SC", "weight": 300}}
+  }
+}

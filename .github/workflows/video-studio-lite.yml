@@ -1,0 +1,31 @@
+name: video-studio-lite
+
+on:
+  push:
+    paths: ['skills/video-studio-lite/**', '.github/workflows/video-studio-lite.yml']
+  pull_request:
+    paths: ['skills/video-studio-lite/**']
+  workflow_dispatch:
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      STUDIO_HOME: ${{ github.workspace }}/studio-home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: selftest
+        run: uv run skills/video-studio-lite/studio.py selftest
+      - name: silent render of the explainer template
+        run: |
+          uv run skills/video-studio-lite/studio.py new 演示 '演示：一句话变成视频'
+          uv run skills/video-studio-lite/studio.py 演示 silent
+          test -s "$STUDIO_HOME/episodes/演示/work/silent/silent.mp4"

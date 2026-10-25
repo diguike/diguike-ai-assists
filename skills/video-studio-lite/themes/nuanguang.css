@@ -1,0 +1,11 @@
+/* 暖光: light sources, serif type with air, film bars. Classes for the 情感短片 template. */
+.slide{background:var(--bg)}
+#sub{font-weight:300;letter-spacing:6px;text-shadow:none;opacity:.92}
+.wm{display:none}
+.line{font-family:'Songti SC','SimSun',serif;font-weight:300;letter-spacing:.14em;white-space:nowrap;line-height:1.5;color:var(--ink)}
+.line.light{color:#F7EFE4}
+.line.small{letter-spacing:.3em}
+.kicker{font-family:var(--ui);font-weight:300;letter-spacing:.5em;white-space:nowrap;color:var(--soft)}
+.kicker.light{color:rgba(247,239,228,.7)}
+.sky{position:absolute;left:-6%;top:-6%;width:112%;height:112%}
+.bokeh{position:absolute;border-radius:50%;filter:blur(2px)}
