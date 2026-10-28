@@ -208,6 +208,50 @@ def tame_breaths(x, sr, text, words, cut_db=10.0):
     return (x * gain).astype(np.float32), report
 
 
+def quiet_floor(x, sr, words, depth_db=14.0, hp_hz=70.0):
+    """Turn the take's own background (the hiss and hum the clone copies from its reference) down
+    between words. Returns (audio, report).
+
+    A cloned voice carries the room of its reference under every word and in every pause. The old
+    reference (a 2021 screen recording) put that noise only ~31 dB under the speech, and myvoice-tts
+    joins sentences with digital silence, so the hiss switched on and off a dozen times a minute: the
+    author heard it as an intermittent electric buzz (「滋滋滋」, V11, 2026-10-28). Speech is never
+    touched: each aligned word keeps 60 ms before and 120 ms after it (quiet consonants, word tails),
+    and so does any frame within 30 dB of the speech that stands 8 dB over the take's floor.
+    Everything else ramps down by depth_db over about 70 ms, so at a sentence break the hiss fades
+    out before the silence instead of stopping dead. A gentle high-pass at hp_hz takes out the hum
+    below the voice.
+    """
+    from scipy import signal
+    y = x.astype(np.float64)
+    if hp_hz:
+        y = signal.sosfiltfilt(signal.butter(2, hp_hz, 'hp', fs=sr, output='sos'), y)
+    hop = int(sr * .01)
+    n = len(y) // hop
+    if n < 20:
+        return y.astype(np.float32), {}
+    db = 10 * np.log10((y[:n * hop].reshape(n, hop) ** 2).mean(1) + 1e-12)
+    live = db > -90  # digital silence (pauses inserted between sentences) is not part of the floor
+    if not live.any():
+        return y.astype(np.float32), {}
+    speech, floor = np.percentile(db[live], 95), np.percentile(db[live], 10)
+    keep = (db > speech - 30) & (db > floor + 8)  # a noisy take's hiss can sit within 30 dB of the speech
+    for _, _, t0, t1 in words:
+        keep[max(0, int((t0 - .06) / .01)):min(n, int((t1 + .12) / .01) + 1)] = True
+    r = 3  # widen by r frames, then smooth with a 2r+1 kernel: kept frames stay at exactly full level
+    wide = _filt(keep.astype(np.float64), np.ones(2 * r + 1)) > 0
+    k = np.hanning(2 * r + 3)[1:-1]
+    s = np.clip(_filt(wide.astype(np.float64), k / k.sum(), 'edge'), 0, 1)
+    g_lo = 10 ** (-depth_db / 20)
+    g = g_lo + (1 - g_lo) * s
+    gain = np.interp(np.arange(len(y)), np.arange(n) * hop + hop / 2, g)
+    out = (y * gain).astype(np.float32)
+    after = 10 * np.log10((out[:n * hop].reshape(n, hop).astype(np.float64) ** 2).mean(1) + 1e-12)
+    return out, {'floor_db': round(float(floor - speech), 1),
+                 'floor_after_db': round(float(np.percentile(after[live], 10) - speech), 1),
+                 'seconds_lowered': round(float((s < .5).sum() * .01), 2)}
+
+
 def _periodic(frames, sr):
     """True for frames with a clear pitch (70-400 Hz): vowels and voiced consonants."""
     f = frames - frames.mean(1, keepdims=True)

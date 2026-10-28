@@ -397,6 +397,8 @@ def slide_audio(s):
         x, words, qc['pauses'] = narration.open_pauses(x, SR, text, words, {**narration.GAPS, **(meta('gaps') or {})})
     if myvoice() and EP.META.get('breaths', True):  # a loud inhale before a sentence, turned down
         x, qc['breaths'] = narration.tame_breaths(x, SR, text, words)
+    if myvoice() and EP.META.get('floor', True):  # the hiss and hum the clone copied, lowered between words
+        x, qc['floor'] = narration.quiet_floor(x, SR, words)
     if len(qc) > 1:
         VOICE_QC[s.id] = qc
     ct = char_times(len(text), words)
@@ -1037,6 +1039,12 @@ def cmd_plan():
               f'{len(stuck)} marks run together, {breaths} inhales turned down (narration-qc.json)')
         for sid, p in stuck[:8]:
             print(f'    {sid:5s} 标点处连读（换一遍合成或改说法） {p["text"]}')
+    floors = {sid: q['floor'] for sid, q in VOICE_QC.items() if q.get('floor')}
+    if floors:
+        sid, f = max(floors.items(), key=lambda kv: kv[1]['floor_db'])
+        print(f'  voice floor: worst {sid} {f["floor_db"]:.0f} dB under speech -> {f["floor_after_db"]:.0f} dB between words')
+        if f['floor_db'] > -38:
+            print(f'    底噪偏高：{sid} 的底噪只比人声低 {-f["floor_db"]:.0f} dB（参考音太吵？换音色或重新合成），停顿里已压低')
 
 
 def write_script(plan):

@@ -294,6 +294,8 @@ class Theme:
         self.watermark = b.get('watermark') or ''
         self.end_card = b.get('end_card') or ''
         self.outro = list(b.get('outro') or [])
+        # hand(): handwritten notes lean a few degrees by default; a theme can stand them upright
+        self.hand_rot = float((cfg.get('hand') or {}).get('rot', -3))
         # areas text should stay out of, e.g. a phone app's buttons over a portrait video:
         # [{"name": ..., "box": [x0, y0, x1, y1]}], checked by `stills` into layout.txt
         self.avoid = [dict(z) for z in cfg.get('avoid') or []]

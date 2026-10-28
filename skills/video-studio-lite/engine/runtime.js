@@ -57,7 +57,14 @@ function dashTo(pat, upto, len){
 function prep(){
   document.querySelectorAll('[data-a]').forEach(el => {
     const r = {el, a: el.dataset.a, svg: el instanceof SVGElement};
-    if (r.a === 'type') r.spans = wrapChars(el);
+    if (r.a === 'type') {
+      r.spans = wrapChars(el);
+      // a typed element that draws something of its own (a border, a background: the bar in front of a
+      // diguike hand note) shows it with its first character, not before; plain text is unaffected
+      const cs = getComputedStyle(el);
+      r.deco = ['Top', 'Right', 'Bottom', 'Left'].some(k => parseFloat(cs[`border${k}Width`]) > 0 && cs[`border${k}Style`] !== 'none')
+        || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) || cs.backgroundImage !== 'none';
+    }
     if (r.a === 'draw') {
       r.len = el.getTotalLength();
       // a dashed line keeps its dashes while it draws (the plain trick would turn it solid)
@@ -101,6 +108,7 @@ function apply(r, p){
     case 'type': {
       const n = r.spans.length, k = p >= 1 ? n : Math.round(p * n);
       r.spans.forEach((sp, i) => { sp.style.visibility = i < k ? 'visible' : 'hidden'; sp.classList.toggle('cur', p > 0 && p < 1 && i === k - 1); });
+      if (r.deco) s.opacity = k > 0 ? 1 : 0;
       break;
     }
     case 'fade': s.opacity = ease(p); if (!r.svg) s.transform = `translateY(${((1 - ease(p)) * 16).toFixed(2)}px)`; break;

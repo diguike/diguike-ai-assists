@@ -426,8 +426,10 @@ def question(eid, text, y=60, size=62, a=AUTO, sfx=AUTO):
             f'{pic}<span style="font-size:{T.px(size)}px">{text}</span></div>')
 
 
-def hand(eid, html, y, x=None, size=60, rot=-3, a=AUTO, cls='', style='', sfx=AUTO):
-    """Handwritten note in the theme's main font (written out char by char by default)."""
+def hand(eid, html, y, x=None, size=60, rot=None, a=AUTO, cls='', style='', sfx=AUTO):
+    """Handwritten note in the theme's main font (written out char by char by default).
+    rot: lean in degrees; None takes the theme's (hand.rot, -3 unless the theme says otherwise)."""
+    rot = T.hand_rot if rot is None else rot
     return txt(eid, html, y, x=x, size=size, a=_anim(a, 'hand'), cls=f'hand {cls}'.strip(), style=f'rotate:{rot}deg;{style}', sfx=sfx)
 
 
