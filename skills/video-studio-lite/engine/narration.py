@@ -110,6 +110,99 @@ GAPS = {'，': .15, ',': .15, '：': .22, ':': .22, '；': .3, ';': .3,
         '。': .5, '！': .5, '!': .5, '？': .55, '?': .55}
 
 
+# Longest pause a take may hold at each mark, in seconds (the other end of GAPS). The clone sometimes
+# stops for 0.3 s inside a phrase (「朋友 | 做生意」, before a quoted word, after an English name) or
+# holds a comma for 0.6 s; the author heard those as a word that "suddenly stops, then the rest
+# comes too late to be one sentence" (2026-10-31). '' is a pause with no mark at all.
+CAPS = {'': .12, '「': .16, '“': .16, '、': .2, '，': .32, ',': .32, '…': .4, '：': .4, ':': .4, '；': .42, ';': .42,
+        '。': .62, '！': .62, '!': .62, '？': .65, '?': .65}
+
+
+def _quiet_runs(x, sr):
+    hop = max(1, int(sr * .005))
+    n = len(x) // hop
+    db = 10 * np.log10((x[:n * hop].reshape(n, hop).astype(np.float64) ** 2).mean(1) + 1e-12)
+    return hop, n, db < max(db.max() - 40, -60)
+
+
+def _longest(q, lo, hi):
+    best = run = 0
+    at = lo
+    for j, v in enumerate(q[lo:hi]):
+        run = run + 1 if v else 0
+        if run > best:
+            best, at = run, lo + j - run + 1
+    return best, at
+
+
+def close_pauses(x, sr, text, words, caps=None, slack=.03, xfade=.012):
+    """Shorten pauses longer than caps[mark] between two words. Returns (audio, words, report).
+
+    Only the quiet middle of a pause is taken out (the voice's own fade and room tail stay on both
+    sides), with a short crossfade, so nothing audible is cut. A pause with a breath in it counts
+    only its longest quiet stretch, so a breath is never removed.
+    """
+    caps = CAPS if caps is None else caps
+    hop, n, q = _quiet_runs(x, sr)
+    if len(words) < 2 or n < 4:
+        return x.copy(), list(words), []
+    cuts, report = [], []
+    for i in range(len(words) - 1):
+        (_, b, _, t1), (a2, _, t0n, _) = words[i], words[i + 1]
+        between = text[b:a2]
+        cap = max([caps[c] for c in between if c in caps] or [caps['']])
+        lo, hi = max(0, int((min(t1, t0n) - .06) / .005)), min(n, int((max(t1, t0n) + .06) / .005) + 1)
+        best, at = _longest(q, lo, hi)
+        have = best * .005
+        if have <= cap + slack:
+            continue
+        cut = have - cap
+        mid = (at + best / 2) * hop
+        s0, s1 = int(mid - cut * sr / 2), int(mid + cut * sr / 2)
+        if cuts and s0 < cuts[-1][1] + int(xfade * sr):  # the same stretch, found again for the next pair
+            continue
+        cuts.append((s0, s1, i))
+        mark = ''.join(c for c in between if c in caps) or '-'
+        report.append({'at': round(t1, 3), 'mark': mark, 'text': f'{text[max(0, b - 6):b]}{between}|{text[a2:a2 + 6]}',
+                       'had': round(have, 3), 'now': round(cap, 3)})
+    if not cuts:
+        return x.copy(), list(words), []
+    shift = [0.0] * len(words)
+    for s0, s1, i in cuts:
+        for w in range(i + 1, len(words)):
+            shift[w] += (s1 - s0) / sr
+    out = splice(x, [(s0, s1) for s0, s1, _ in cuts], int(xfade * sr))
+    moved = [(a, b, t0 - shift[w], t1 - shift[w]) for w, (a, b, t0, t1) in enumerate(words)]
+    return out, moved, report
+
+
+def splice(x, cuts, xf):
+    """x without x[s0:s1] for each (s0, s1) (sorted, apart), crossfading xf samples at every join."""
+    fo = (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, xf))).astype(np.float32)
+    out, pos = [], 0
+    for s0, s1 in cuts:
+        if s0 < pos or s1 + xf > len(x) or s1 - s0 < xf:
+            continue
+        out += [x[pos:s0], x[s0:s0 + xf] * fo + x[s1:s1 + xf] * (1 - fo)]
+        pos = s1 + xf
+    out.append(x[pos:])
+    return np.concatenate(out).astype(np.float32)
+
+
+def _insert_silence(parts, x, at, add, sr, ramp=.006):
+    """x[:at] with a short fade-out, `add` samples of silence; returns the faded start of the rest.
+    A pause cut into the room tone at -40 dB still steps to digital zero; a 6 ms ramp makes it a fade."""
+    r = min(int(ramp * sr), at, len(x) - at)
+    head = x[:at].copy()
+    if r > 1:
+        head[-r:] *= np.linspace(1, 0, r)
+    rest = x[at:].copy()
+    if r > 1:
+        rest[:r] *= np.linspace(0, 1, r)
+    parts += [head, np.zeros(add, np.float32)]
+    return rest
+
+
 def open_pauses(x, sr, text, words, gaps=None, min_quiet=.02):
     """Lengthen pauses shorter than gaps[mark] between two words. Returns (audio, words, report).
 
@@ -152,15 +245,15 @@ def open_pauses(x, sr, text, words, gaps=None, min_quiet=.02):
         at = (best_at + best / 2) * hop
         plan.append((int(at), int((want - have) * sr), i))
         report.append({'at': round(t1, 3), 'text': ctx, 'have': round(have, 3), 'added': round(want - have, 3), 'how': 'silence'})
-    out, pos, shift = [], 0, [0.0] * len(words)
+    out, pos, rest, shift = [], 0, x, [0.0] * len(words)
     for at, add, i in plan:
         if at <= pos:
             continue
-        out += [x[pos:at], np.zeros(add, np.float32)]
+        rest = _insert_silence(out, rest, at - pos, add, sr)
         pos = at
         for w in range(i + 1, len(words)):
             shift[w] += add / sr
-    out.append(x[pos:])
+    out.append(rest)
     moved = [(a, b, t0 + shift[w], t1 + shift[w]) for w, (a, b, t0, t1) in enumerate(words)]
     return np.concatenate(out).astype(np.float32), moved, report
 
@@ -261,25 +354,36 @@ def _periodic(frames, sr):
     return ac[:, lo:hi].max(1) > .45 if hi > lo else np.zeros(len(f), bool)
 
 
-def trim_bounds(x, sr, words):
-    """Keep quiet consonant/word tails as well as alignment uncertainty margins."""
+def trim_bounds(x, sr, words, keep=.3):
+    """Keep quiet consonant/word tails as well as alignment uncertainty margins, but no more than
+    `keep` seconds of faint sound (35 dB or more under the speech) after the last word or before the
+    first: an exhale or room tail above -55 dBFS once stretched a slide's end by half a second, and
+    the next slide waited for it (2026-10-31). Anything louder is voice (a drawn-out last syllable
+    the aligner ended early) and is always kept."""
     on = np.flatnonzero(np.abs(x) > 10 ** (-55 / 20))
     if not len(on):
         return 0.0, len(x) / sr
     head = max(0, on[0] / sr - .06)
     tail = min(len(x) / sr, on[-1] / sr + .16)
     if words:
-        head = min(head, max(0, words[0][2] - .06))
-        tail = max(tail, min(len(x) / sr, words[-1][3] + .14))
+        hop = max(1, int(sr * .01))
+        n = len(x) // hop
+        db = 10 * np.log10((x[:n * hop].reshape(n, hop).astype(np.float64) ** 2).mean(1) + 1e-12)
+        loud = np.flatnonzero(db > np.percentile(db, 95) - 35)
+        first, last = (loud[0] * hop / sr, (loud[-1] + 1) * hop / sr) if len(loud) else (head, tail)
+        head = min(max(head, min(words[0][2] - keep, first - .08)), max(0, words[0][2] - .06))
+        tail = max(min(tail, max(words[-1][3] + keep, last + .08)), min(len(x) / sr, words[-1][3] + .14))
     return head, tail
 
 
-def soften_quiet_edges(x, sr):
-    """Remove clicks at quiet edit edges; never fade an audible consonant away."""
+def soften_quiet_edges(x, sr, ms=12):
+    """Fade the two ends of a slide's narration. The ends are trim margins outside the first and
+    last word (60 ms before, 140 ms after), so a fade there never eats a consonant; a slide that ended
+    on its room tone at -30 dB without one stepped to silence with a click (3 of 19 slides, 2026-10-31)."""
     out = x.copy()
-    n = min(int(.004 * sr), len(x) // 2)
-    if n and np.max(np.abs(x[:n])) < 10 ** (-40 / 20):
-        out[:n] *= np.linspace(0, 1, n)
-    if n and np.max(np.abs(x[-n:])) < 10 ** (-40 / 20):
-        out[-n:] *= np.linspace(1, 0, n)
+    n = min(int(ms / 1000 * sr), len(x) // 2)
+    if n > 1:
+        ramp = 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, n))
+        out[:n] *= ramp
+        out[-n:] *= ramp[::-1]
     return out

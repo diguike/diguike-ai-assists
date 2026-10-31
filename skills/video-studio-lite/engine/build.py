@@ -66,7 +66,7 @@ DUR = {'fade': .4, 'pop': .45, 'draw': .45, 'wipe': .5, 'growY': .5, 'growX': .6
 SILENT = False        # `silent` step: estimated timings, no voice (motion preview)
 PUNCT = '，。；？！：、,;?!:'
 DEFAULTS = {'voice': 'myvoice', 'myvoice': 'diguike', 'rate': '+22%', 'speed': 1.0, 'takes': 2, 'pron': {},
-            'lead': LEAD, 'tail': SLIDE_TAIL, 'gaps': None,
+            'lead': LEAD, 'tail': SLIDE_TAIL, 'gaps': None, 'caps': None,
             'bgm': True, 'bgm_seed': 11, 'bgm_lu': -21.0, 'duck_db': 4.0, 'sfx': True, 'sfx_db': 0.0,
             **host.CONF.get('defaults', {})}
 
@@ -184,6 +184,14 @@ def beat_tts(b):
     if t and t.rstrip('”’」』）)"\'')[-1:] not in PUNCT:
         t += '，'
     return t
+
+
+def runs_on(s):
+    """The slide's narration stops mid-sentence: its last spoken beat ends on ，、：…… or no mark, and the
+    next slide finishes the sentence. The slide change then gets a comma's pause, not a sentence's: a
+    full lead and tail there split one sentence in two (「打工皇帝……」 2.4 s 「轮到它们拿主意」, 2026-10-31)."""
+    said = [beat_tts(b) for b in s.beats if b.get('voiced', True) and beat_tts(b)]
+    return bool(said) and not re.search(r'[。！？!?；;]$', said[-1].rstrip(' 」』”"’）)'))
 
 
 def voiced(s):
@@ -393,6 +401,8 @@ def slide_audio(s):
         target = EP.META.get('voice_level_db', -21.0)
         x, qc['sentences'] = narration.level_sentences(x, SR, text, words, target_db=target)
         x, qc['ride'] = narration.ride(x, SR, target_db=target)  # a long sentence that fades out
+    if myvoice() and meta('caps') is not False:  # pauses held too long for their mark (quiet middle taken out)
+        x, words, qc['held'] = narration.close_pauses(x, SR, text, words, {**narration.CAPS, **(meta('caps') or {})})
     if myvoice() and meta('gaps') is not False:  # pauses too short for their mark (lengthened, never cut)
         x, words, qc['pauses'] = narration.open_pauses(x, SR, text, words, {**narration.GAPS, **(meta('gaps') or {})})
     if myvoice() and EP.META.get('breaths', True):  # a loud inhale before a sentence, turned down
@@ -411,8 +421,11 @@ def slide_audio(s):
     head, tail = narration.trim_bounds(x, SR, words)
     cuts = [head] + [(bounds[k][1] + bounds[k + 1][0]) / 2 for k in range(len(bounds) - 1)] + [tail]
     out, beats, t = [], [], 0.0
+    ramp = np.linspace(0, 1, int(.006 * SR), dtype=np.float32)  # around silence inserted between beats
     for k, b in enumerate(s.beats):
-        seg = x[int(cuts[k] * SR):int(cuts[k + 1] * SR)]
+        seg = x[int(cuts[k] * SR):int(cuts[k + 1] * SR)].copy()
+        if out and not out[-1].any() and len(seg) > len(ramp):
+            seg[:len(ramp)] *= ramp
         shift = t - cuts[k]
         a, e = spans[k]
         beats.append({'start': bounds[k][0] + shift, 'dur': bounds[k][1] - bounds[k][0],
@@ -421,7 +434,10 @@ def slide_audio(s):
         t += len(seg) / SR
         if b['pause'] is not None and k < len(s.beats) - 1:
             extra = max(0.0, b['pause'] - (bounds[k + 1][0] - bounds[k][1]))
-            out.append(np.zeros(int(extra * SR), np.float32))
+            if extra > 0:  # the cut sits in room tone, not at zero: fade into and out of the silence
+                if len(seg) > len(ramp):
+                    seg[-len(ramp):] *= ramp[::-1]
+                out.append(np.zeros(int(extra * SR), np.float32))
             t += extra
     return narration.soften_quiet_edges(np.concatenate(out), SR), beats
 
@@ -556,6 +572,8 @@ def lint_myvoice():
                 timing.append(f'{s.id:5s} {q["tries"]} 遍都丢了最后一个字（去听；换个结尾的说法）  {q["text"][:24]}')
             if q.get('runon'):
                 timing.append(f'{s.id:5s} {q["tries"]} 遍都在逗号处连读 {q["runon"]} 处  {q["text"][:24]}')
+            if q.get('cut'):  # myvoice-tts 0.4.1 already let it die away over 90 ms; still worth a listen
+                timing.append(f'{s.id:5s} {q["tries"]} 遍都在最后一个字还响着时结束（已做 90 ms 衰减，去听句尾）  {q["text"][:24]}')
         words = word_spans(text, js['events'])
         for (a, b, t0, t1), nxt in zip(words, words[1:] + [None]):
             w = text[a:b]
@@ -881,7 +899,12 @@ def cmd_plan():
         s_start = t
         kind, td = slide_trans(s, si)
         if not novoice():  # cut to music: no padding, so slide changes land on the beats' grid
-            t += LEAD_FIRST if si == 0 else max(meta('lead'), td + 0.1)
+            if si == 0:
+                t += LEAD_FIRST
+            elif runs_on(EP.SLIDES[si - 1]):  # the sentence goes on: speak while the transition plays
+                t += max(0.12, 0.5 * td)
+            else:
+                t += max(meta('lead'), td + 0.1)
         x, beats = slide_audio(s)
         audio_parts.append((t, x))
         a_start = t
@@ -977,7 +1000,9 @@ def cmd_plan():
                 cues.append({'start': round(c0, 3), 'end': round(c1, 3), 'text': cue_display(disp[a:bb])})
         t = a_start + len(x) / SR + (s.beats[-1]['pause'] or 0)
         if not novoice():
-            t = max(t, anim_end + 0.4) + meta('tail')
+            # the last animation gets a 0.4 s hold, the last line its tail: whichever ends later, not the
+            # two added (a punch landing just after the line made a 1.5 s gap before the next slide)
+            t = max(t + 0.1, anim_end + 0.15) if runs_on(s) else max(t + meta('tail'), anim_end + 0.4)
         for snd in s.sounds:  # scene sound effects, resolved like S.word
             b = snd['beat']
             i = int(b[1:]) if re.fullmatch(r'b\d+', b) else (bt.index(bk[b]) if b in bk else None)
@@ -1030,12 +1055,27 @@ def cmd_plan():
     talk = sum(b['dur'] for b in beats_out if b['text'])
     pace = f', {chars / talk:.2f} chars/s while talking' if talk and not novoice() else ''
     print(f'plan ok: {total / 60:.1f} min, {len(beats_out)} beats, {len(cues)} subtitle cues, {len(acts)} actions{pace}')
+    said = [b for b in beats_out if b['text']]
+    long_gaps = []
+    for a, b in zip(said, said[1:]):
+        gap = b['start'] - a['start'] - a['dur']
+        ends = re.search(r'[。！？!?；;]$', a['text'].rstrip(' 」』”"’）)'))
+        if gap > (1.3 if ends else 0.7):
+            long_gaps.append((gap, a, b, ends))
+    if long_gaps:
+        print(f'  voice: {len(long_gaps)} long silences between spoken lines (a silent beat, pause=, or the voice '
+              'waiting for an animation; shorten them or say why they are there):')
+        for gap, a, b, ends in long_gaps[:10]:
+            where = '换页' if a['slide'] != b['slide'] else '同页'
+            print(f'    {gap:.1f}s {where}{"" if ends else "，句子中间"} 「…{a["text"][-8:]}」→「{b["text"][:8]}…」')
     pauses = [(sid, p) for sid, q in VOICE_QC.items() for p in q.get('pauses', [])]
     breaths = sum(len(q.get('breaths', [])) for q in VOICE_QC.values())
-    if pauses or breaths:
+    held = [p for q in VOICE_QC.values() for p in q.get('held', [])]
+    if pauses or breaths or held:
         added = [p for _, p in pauses if p['added']]
         stuck = [(sid, p) for sid, p in pauses if not p['added']]
         print(f'  voice: {len(added)} pauses lengthened (+{sum(p["added"] for p in added):.1f} s), '
+              f'{len(held)} held too long shortened (-{sum(p["had"] - p["now"] for p in held):.1f} s), '
               f'{len(stuck)} marks run together, {breaths} inhales turned down (narration-qc.json)')
         for sid, p in stuck[:8]:
             print(f'    {sid:5s} 标点处连读（换一遍合成或改说法） {p["text"]}')

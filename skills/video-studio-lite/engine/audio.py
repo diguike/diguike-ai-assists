@@ -25,7 +25,19 @@ def penta(base, step):
     return base + 12 * (step // 5) + PENTA[step % 5]
 
 
+def _fade_tail(x, sec=0.012):
+    """Raised-cosine fade over the last `sec` of a note or effect. A sound cut off while it is still
+    ringing (a kick at -19 dB, a pad at -21 dB, a pop at -24 dB) ends on a step, and a step is a
+    click: the author heard them as a sudden 「卡」 (2026-10-31)."""
+    n = min(int(sec * SR), x.shape[-1])
+    if n > 1:
+        x = x.copy()
+        x[..., -n:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, n))
+    return x
+
+
 def _add(buf, x, t):
+    x = _fade_tail(x)
     i = int(round(t * SR))
     if i < 0:
         x, i = x[..., -i:], 0
@@ -75,7 +87,7 @@ def bass(m, dur, vel):
 
 def pad(ms, dur, rng, lo=16000):
     """Warm stereo pad: band-limited detuned saws, rendered at 16 kHz and upsampled."""
-    n = int((dur + 2.2) * lo)
+    n = int((dur + 4.6) * lo)  # the 0.9 s release rings out to about -45 dB before the buffer ends
     t = np.arange(n) / lo
     out = np.zeros((2, n))
     for ch, cents in enumerate((-7, 7)):
@@ -89,7 +101,7 @@ def pad(ms, dur, rng, lo=16000):
 
 
 def kick(vel):
-    n = int(0.35 * SR)
+    n = int(0.8 * SR)  # tau 0.16 s: 0.8 s is -43 dB (0.35 s cut the tail at -19 dB, a click on every beat)
     t = _t(n)
     ph = 2 * np.pi * np.cumsum(45 + 70 * np.exp(-t / 0.035)) / SR
     return np.sin(ph) * np.exp(-t / 0.16) * (1 - np.exp(-t / 0.002)) * vel
@@ -99,14 +111,14 @@ def brush(vel, rng):
     n = int(0.25 * SR)
     t = _t(n)
     x = signal.sosfilt(_sos('bandpass', [1200, 6000]), rng.standard_normal(n))
-    return x * np.exp(-t / 0.07) * (1 - np.exp(-t / 0.004)) * vel * 0.5
+    return _fade_tail(x * np.exp(-t / 0.07) * (1 - np.exp(-t / 0.004)) * vel * 0.5, 0.08)
 
 
 def shaker(vel, rng):
     n = int(0.08 * SR)
     t = _t(n)
     x = signal.sosfilt(_sos('highpass', 5000), rng.standard_normal(n))
-    return x * np.exp(-t / 0.025) * (1 - np.exp(-t / 0.008)) * vel * 0.4
+    return _fade_tail(x * np.exp(-t / 0.025) * (1 - np.exp(-t / 0.008)) * vel * 0.4, 0.03)
 
 
 def reverb_ir(rng, rt=1.6):
@@ -212,7 +224,7 @@ def make_bgm(total, seed=11, bpm=76, intro=2.5, outro_at=None):
 def _glass(m, dur, vel):
     """Soft bell: two sines with a quick decay, for arpeggios that should not bark like a piano."""
     f = hz(m)
-    n = int((dur + 1.8) * SR)
+    n = int((dur + 4.5) * SR)  # tau 0.9 s rings out to about -45 dB (dur + 1.8 cut it at -17 dB)
     t = _t(n)
     x = np.sin(2 * np.pi * f * t) + 0.25 * np.sin(2 * np.pi * 2.01 * f * t) * np.exp(-t / 0.25)
     env = (1 - np.exp(-t / 0.004)) * np.exp(-t / 0.9)
@@ -334,7 +346,7 @@ def load_music(path, total, ffmpeg='ffmpeg', fade=2.0):
 # ---------------------------------------------------------------- effects
 
 def _pop(m):
-    n = int(0.14 * SR)
+    n = int(0.3 * SR)  # tau 0.05 s: 0.3 s is -52 dB (0.14 s ended it on a click at -24 dB)
     t = _t(n)
     ph = 2 * np.pi * np.cumsum(hz(m) * (0.62 + 0.38 * (1 - np.exp(-t / 0.018)))) / SR
     x = np.sin(ph) * np.exp(-t / 0.05) + 0.25 * np.sin(2 * ph) * np.exp(-t / 0.02)
@@ -344,7 +356,7 @@ def _pop(m):
 def _tone(m, dec=0.35):
     """Marimba-like strike."""
     f = hz(m)
-    n = int(dec * 3.5 * SR)
+    n = int(dec * 6 * SR)  # six time constants: -52 dB (3.5 cut the ring at -30 dB)
     t = _t(n)
     x = (np.sin(2 * np.pi * f * t) * np.exp(-t / dec)
          + 0.35 * np.sin(2 * np.pi * 3.9 * f * t) * np.exp(-t / (dec * .18))
@@ -354,7 +366,7 @@ def _tone(m, dec=0.35):
 
 def _bell(m, dec=1.1):
     f = hz(m)
-    n = int(dec * 3.5 * SR)
+    n = int(dec * 6 * SR)
     t = _t(n)
     x = np.sin(2 * np.pi * f * t + 1.6 * np.exp(-t / .25) * np.sin(2 * np.pi * 3.5 * f * t))
     return x * np.exp(-t / dec) * (1 - np.exp(-t / .002))
@@ -409,13 +421,18 @@ def render_sfx(ev, rng):
         return np.stack([x * np.sqrt(1 - p), x * np.sqrt(p)])
     if k == 'wipe':
         return _stereo(_noise_sweep(0.3, rng, 900, 4200, width=0.6))
-    if k == 'swish':
+    if k == 'swish':  # a soft marker stroke: airy noise that swells and fades, no tremolo
+        # Until 2026-10-31 this was 2.2-7 kHz hiss with an 11 Hz tremolo: exactly what radio static
+        # sounds like, and the author heard it as an intermittent 「电流滋滋」 under the voice.
         d = ev.get('d', 0.6)
         n = int(d * SR)
         t = _t(n)
-        x = signal.sosfilt(_sos('bandpass', [2200, 7000]), rng.standard_normal(n))
-        x *= (1 + 0.6 * np.sin(2 * np.pi * rng.uniform(9, 13) * t)) * np.clip(t / .03, 0, 1) * np.clip((d - t) / .08, 0, 1)
-        return _stereo(x / np.abs(x).max())
+        x = signal.sosfilt(_sos('bandpass', [700, 3200]), rng.standard_normal(n))
+        x = signal.sosfilt(_sos('lowpass', 4500, 4), x)
+        u = np.clip(t / d, 0, 1)
+        env = np.sin(np.pi * np.minimum(1, u / .25) / 2) ** 2 * (1 - .35 * u) * np.cos(np.pi * np.maximum(0, u - .7) / .6) ** 2
+        x *= env
+        return _stereo(x / (np.abs(x).max() + 1e-9))
     if k == 'keys':  # soft keyboard clicks while a prompt types itself
         d = ev.get('d', 1.0)
         out, t = np.zeros(int((d + 0.1) * SR)), 0.0
@@ -433,7 +450,7 @@ def render_sfx(ev, rng):
         return _stereo(_seq([(0, snap(2400)), (0.07, 0.6 * snap(3000))]))
     if k in ('impact', 'thud'):  # a landing: falling sub tone + a felt transient
         dur = 0.5 if k == 'impact' else 0.8
-        n = int(dur * SR)
+        n = int(dur * 1.6 * SR)  # ends near -50 dB instead of being cut at -30 dB
         t = _t(n)
         f0, f1 = (110, 48) if k == 'impact' else (80, 36)
         body = np.sin(2 * np.pi * np.cumsum(f1 + (f0 - f1) * np.exp(-t / 0.05)) / SR) * np.exp(-t / (dur / 3.5))
@@ -450,13 +467,13 @@ def render_sfx(ev, rng):
         n = int(d * SR)
         t = _t(n)
         x = _noise_sweep(d, rng, 300, 7000, width=0.9)
-        return _stereo(x * (t / d) ** 2 / (np.abs(x * (t / d) ** 2).max() + 1e-9))
+        return _stereo(_fade_tail(x * (t / d) ** 2 / (np.abs(x * (t / d) ** 2).max() + 1e-9), 0.04))
     raise KeyError(k)
 
 
 # peak level of each effect; calibrated so the loudest 50 ms of a pop/tone sits
 # ~10 dB under the voice's loud syllables (voice p90 ≈ -15 dBFS in the final mix)
-GAIN = {'pop': .092, 'tone': .078, 'bar': .032, 'chime': .10, 'wrong': .11, 'whoosh': .10, 'wipe': .075, 'swish': .072,
+GAIN = {'pop': .092, 'tone': .078, 'bar': .032, 'chime': .10, 'wrong': .11, 'whoosh': .10, 'wipe': .075, 'swish': .05,
         'keys': .05, 'click': .09, 'impact': .16, 'thud': .15, 'tick': .06, 'whip': .085, 'riser': .07}
 
 
@@ -530,7 +547,7 @@ def render_sfx_track(events, total, seed=5, gain=1.0):
     buf = np.zeros((2, int((total + 2) * SR)))
     for e in events:
         x = render_sfx(e, rng)
-        _add(buf, x / np.abs(x).max() * GAIN[e['k']] * gain, e['t'])
+        _add(buf, x / np.abs(x).max() * GAIN[e['k']] * gain, e['t'])  # _add fades every tail
     return buf[:, :int(total * SR)].astype(np.float32)
 
 
