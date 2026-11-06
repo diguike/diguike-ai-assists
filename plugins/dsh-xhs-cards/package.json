@@ -1,0 +1,12 @@
+{
+  "name": "dsh-xhs-cards",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 插件：把一段内容做成小红书 3:4 图文卡片，可再串成竖屏小视频",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "files": ["index.js", "cordis.patch.yml", "README.md"],
+  "engines": { "dsh": ">=0.2.2-rc.1 <0.3.0" },
+  "peerDependencies": { "@deepseek-ai/dsh-tools": "*" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

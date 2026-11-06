@@ -1,0 +1,12 @@
+# 这一条配置，就是把插件挂上那棵插件树。想调规则，改 config，不用动代码。
+- insert:
+    - id: xhs-cards
+      name: dsh-xhs-cards
+      config:
+        maxTitle: 20          # 标题字数上限，超了直接拦下
+        maxCardText: 120      # 每张内页的字数上限
+        bannedOpeners:        # 不许这样开头
+          - 家人们
+          - 姐妹们
+          - 在当今
+          - 随着科技
